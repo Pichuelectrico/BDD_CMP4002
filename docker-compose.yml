@@ -1,0 +1,34 @@
+# docker-compose.yml
+# Proyecto Final — Neo4j · Ruta 4 Grafo
+# Uso: docker compose up -d
+
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: proyecto_neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/neo4j123
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_import_file_enabled: "true"
+      NEO4J_apoc_import_file_use__neo4j__config: "true"
+      # Permite conexión desde Neo4j Desktop externo
+      NEO4J_dbms_connector_bolt_listen__address: "0.0.0.0:7687"
+      NEO4J_dbms_connector_http_listen__address: "0.0.0.0:7474"
+    ports:
+      - "7474:7474"   # Neo4j Browser (web)
+      - "7687:7687"   # Bolt — para Neo4j Desktop
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - ./neo4j:/var/lib/neo4j/import
+    healthcheck:
+      test: ["CMD", "neo4j", "status"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  neo4j_data:
+  neo4j_logs:

@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proyecto Final — Neo4j · Ruta 4 Grafo</title>
+<style>
+  :root{
+    --bg:#f7f8fa;--panel:#fff;--ink:#1c2430;--ink-soft:#5a6472;
+    --border:#e4e7ec;--accent:#018bff;--accent-soft:#e6f4ff;
+    --neo:#018bff;--neo-soft:#e6f4ff;
+    --code-bg:#1e2530;--code-ink:#e6e9ef;
+    --green:#13aa52;--green-soft:#e8f8ee;
+    --orange:#f5a623;--orange-soft:#fff8ec;
+    --red:#e53935;--red-soft:#fdecea;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.65;font-size:16px;}
+  .layout{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:100vh;}
+  .sidebar{background:var(--panel);border-right:1px solid var(--border);padding:24px 18px;
+    position:sticky;top:0;height:100vh;overflow-y:auto;}
+  .sidebar h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin:0 0 12px 4px;}
+  .sidebar-brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;margin-bottom:20px;padding:0 4px;}
+  .sidebar nav a{display:block;padding:7px 10px;border-radius:8px;color:var(--ink-soft);
+    text-decoration:none;font-size:13.5px;margin-bottom:2px;transition:background .12s,color .12s;}
+  .sidebar nav a:hover,.sidebar nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+  #toc-search{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);
+    margin-bottom:14px;font-size:13px;font-family:inherit;}
+  #toc-search:focus{outline:2px solid var(--accent-soft);border-color:var(--accent);}
+  .content{padding:48px clamp(20px,5vw,72px);max-width:980px;}
+  h1,h2,h3,h4{font-weight:700;line-height:1.3;scroll-margin-top:24px;}
+  h1{font-size:1.9rem;padding-bottom:14px;border-bottom:3px solid var(--neo);margin:52px 0 22px;}
+  .content>h1:first-child{border-bottom:none;padding-bottom:0;font-size:2.1rem;margin-top:0;}
+  h2{font-size:1.4rem;margin:38px 0 14px;padding-left:12px;border-left:4px solid var(--neo);}
+  h3{font-size:1.12rem;margin:26px 0 10px;}
+  h4{font-size:1rem;margin:18px 0 8px;color:var(--ink-soft);}
+  p{margin:10px 0;}
+  a{color:var(--accent);}
+  ul,ol{padding-left:1.4em;margin:10px 0;}
+  li{margin:4px 0;}
+  hr{border:none;border-top:1px solid var(--border);margin:34px 0;}
+  blockquote{margin:16px 0;padding:12px 18px;background:var(--accent-soft);
+    border-left:4px solid var(--accent);border-radius:0 8px 8px 0;}
+  blockquote p{margin:4px 0;}
+  strong{color:var(--ink);}
+  table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14px;
+    border-radius:var(--radius);overflow:hidden;box-shadow:0 0 0 1px var(--border);}
+  th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);}
+  th{background:#eef1f5;font-weight:700;}
+  tr:last-child td{border-bottom:none;}
+  tr:nth-child(even) td{background:#fafbfc;}
+  code{font-family:"Consolas","Monaco","Courier New",monospace;background:#eef0f3;
+    color:#c7254e;padding:2px 6px;border-radius:5px;font-size:.88em;}
+  .code-wrapper{position:relative;margin:16px 0 22px;}
+  .codehilite{background:var(--code-bg);border-radius:var(--radius);overflow-x:auto;
+    box-shadow:0 1px 3px rgba(0,0,0,.15);}
+  .codehilite pre{margin:0;padding:18px 20px;padding-top:40px;overflow-x:auto;}
+  .codehilite code{background:none;color:var(--code-ink);padding:0;font-size:13.5px;line-height:1.55;}
+  .copy-btn{position:absolute;top:10px;right:12px;background:#323d4d;color:#d7dce3;
+    border:1px solid #454f5f;border-radius:6px;padding:5px 12px;font-size:12px;
+    font-family:inherit;cursor:pointer;transition:background .15s,color .15s;z-index:2;}
+  .copy-btn:hover{background:#454f5f;color:#fff;}
+  .copy-btn.copied{background:var(--green);color:#fff;border-color:var(--green);}
+  /* syntax highlight */
+  .k{color:#ff7ab2;} .kw{color:#ff7ab2;} .s{color:#a5d6a7;} .s1{color:#a5d6a7;}
+  .nb{color:#82aaff;} .nf{color:#82aaff;} .mi{color:#f78c6c;} .c1{color:#7d8899;font-style:italic;}
+  .c{color:#7d8899;font-style:italic;} .n{color:#e6e9ef;} .o{color:#c3c9d3;} .p{color:#c3c9d3;}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;}
+  .badge-neo{background:var(--neo-soft);color:var(--neo);}
+  .badge-green{background:var(--green-soft);color:var(--green);}
+  .badge-orange{background:var(--orange-soft);color:#c97d00;}
+  .badge-red{background:var(--red-soft);color:var(--red);}
+
+  .alert{padding:14px 18px;border-radius:var(--radius);margin:18px 0;}
+  .alert-info{background:var(--neo-soft);border-left:4px solid var(--neo);}
+  .alert-success{background:var(--green-soft);border-left:4px solid var(--green);}
+  .alert-warn{background:var(--orange-soft);border-left:4px solid var(--orange);}
+  .alert-danger{background:var(--red-soft);border-left:4px solid var(--red);}
+
+  .rubric-table td:first-child{font-weight:600;}
+  .rubric-table td:nth-child(2){text-align:center;font-weight:700;color:var(--neo);}
+
+  .top-btn{position:fixed;bottom:26px;right:26px;background:var(--neo);color:#fff;
+    border:none;width:42px;height:42px;border-radius:50%;font-size:18px;cursor:pointer;
+    box-shadow:0 4px 12px rgba(1,139,255,.35);display:none;align-items:center;
+    justify-content:center;z-index:50;}
+  .top-btn.show{display:flex;}
+  @media(max-width:860px){
+    .layout{grid-template-columns:1fr;}
+    .sidebar{position:relative;height:auto;max-height:60vh;}
+    .content{padding:28px 20px;}
+  }
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-thumb{background:#cfd4db;border-radius:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">🕸️ <span>Neo4j · Ruta 4</span></div>
+  <input id="toc-search" type="text" placeholder="Buscar en el índice…">
+  <h3>Contenido</h3>
+  <nav id="toc-nav"></nav>
+</aside>
+<main class="content">
+
+<h1 id="inicio">🕸️ Proyecto Final — Neo4j<br><small style="font-size:.55em;font-weight:400;color:var(--ink-soft);">Ruta 4 · Grafo · Infraestructura IA Universitaria</small></h1>
+
+<div class="alert alert-info">
+  <strong>Ruta escogida:</strong> Ruta 4 — Grafo &nbsp;|&nbsp;
+  <strong>Herramienta:</strong> Neo4j 5 (Community) via Docker &nbsp;|&nbsp;
+  <strong>Interfaz:</strong> Neo4j Browser &amp; Neo4j Desktop (Cypher App) &nbsp;|&nbsp;
+  <strong>Puntaje total:</strong> 25 pts
+</div>
+
+<blockquote>
+<p><strong>Pregunta central:</strong> ¿Qué servicios de la infraestructura universitaria de IA se ven afectados cuando falla un servidor o un servicio clave, y a qué estudiantes impacta directamente?</p>
+<p>Esta pregunta exige <em>caminar relaciones a profundidad variable</em> — exactamente el patrón que justifica un grafo.</p>
+</blockquote>
+
+<hr>
+
+<h1 id="capitulo-1-justificacion">Capítulo 1: Justificación de la Ruta</h1>
+
+<h2 id="11-problema">1.1 Problema y usuario</h2>
+<p>La infraestructura de IA de una universidad tiene <strong>servidores GPU</strong> que alojan <strong>servicios</strong> (JupyterHub, Ollama, VPN, vLLM…). Los <strong>estudiantes</strong> trabajan en <strong>proyectos</strong> que usan esos servicios. Los <strong>técnicos</strong> atienden <strong>tickets</strong> de incidencia.</p>
+<p>El flujo de soporte necesita responder preguntas como:</p>
+<ul>
+  <li>Si el servidor H200 cae, ¿qué servicios dejan de funcionar?</li>
+  <li>¿Qué estudiantes quedan bloqueados y cuáles son sus tickets activos?</li>
+  <li>¿A través de qué cadena de dependencia se propagó la falla?</li>
+</ul>
+
+<h2 id="12-por-que-grafo">1.2 ¿Por qué Ruta 4 — Grafo?</h2>
+<table>
+  <thead><tr><th>Criterio</th><th>¿Lo cumple el grafo?</th></tr></thead>
+  <tbody>
+    <tr><td>Las <strong>relaciones son el dato central</strong></td><td>✅ DEPENDE_DE, ALOJA, TRABAJA_EN, REPORTÓ…</td></tr>
+    <tr><td>Necesito <strong>caminar profundidad > 1</strong></td><td>✅ Servidor → Servicio → Proyecto → Estudiante → Ticket</td></tr>
+    <tr><td>La pregunta es de <strong>impacto y propagación</strong></td><td>✅ Recorrido inverso de dependencias</td></tr>
+    <tr><td>En SQL necesitaría CTEs recursivas complejas</td><td>✅ Cypher lo hace en 3 líneas</td></tr>
+  </tbody>
+</table>
+
+<div class="alert alert-warn">
+<strong>Costo aceptado:</strong> Si necesitáramos reportes con SUM/AVG sobre millones de registros, el grafo no es la mejor herramienta. Para ese caso, una parte del sistema debería usar SQL. En este proyecto ese límite es aceptable porque el caso de uso principal es <em>caminar dependencias</em>, no agregar estadísticas masivas.
+</div>
+
+<hr>
+
+<h1 id="capitulo-2-modelo">Capítulo 2: Modelo del Grafo</h1>
+
+<h2 id="21-nodos">2.1 Tipos de Nodo</h2>
+<table>
+  <thead><tr><th>Etiqueta</th><th>Propiedades principales</th><th>Ejemplos</th></tr></thead>
+  <tbody>
+    <tr><td><code>:Servidor</code></td><td>nombre, tipo, ip</td><td>H200, A100, DGX, VPS-TI, Workstation-1…</td></tr>
+    <tr><td><code>:Servicio</code></td><td>nombre, tipo, estado</td><td>VPN, JupyterHub, Ollama, vLLM…</td></tr>
+    <tr><td><code>:Proyecto</code></td><td>nombre, tipo</td><td>Kapak, Pipeline NLP…</td></tr>
+    <tr><td><code>:Estudiante</code></td><td>nombre, tipo, email</td><td>Ana García, Luis Morales, Maria Emilia Granda…</td></tr>
+    <tr><td><code>:Tecnico</code></td><td>nombre, nivel</td><td>Roberto Méndez (Dev), Galo Pérez (TI)…</td></tr>
+    <tr><td><code>:Ticket</code></td><td>id, estado, prioridad, categoria</td><td>TK-101 … TK-115</td></tr>
+    <tr><td><code>:Coordinador</code></td><td>nombre, carrera</td><td>Daniel Riofrío, Felipe Grijalva</td></tr>
+  </tbody>
+</table>
+
+<h2 id="22-relaciones">2.2 Tipos de Relación</h2>
+<table>
+  <thead><tr><th>Relación</th><th>Desde → Hasta</th><th>Propiedades</th><th>Significado</th></tr></thead>
+  <tbody>
+    <tr><td><code>:ALOJA</code></td><td>Servidor → Servicio</td><td>—</td><td>El servidor corre ese servicio</td></tr>
+    <tr><td><code>:DEPENDE_DE</code></td><td>Servicio → Servicio</td><td>—</td><td>El servicio A necesita al B</td></tr>
+    <tr><td><code>:USA</code></td><td>Proyecto → Servicio</td><td>—</td><td>El proyecto consume el servicio</td></tr>
+    <tr><td><code>:TRABAJA_EN</code></td><td>Estudiante → Proyecto</td><td>—</td><td>El estudiante participa en el proyecto</td></tr>
+    <tr><td><code>:SUPERVISADO_POR</code></td><td>Estudiante → Coordinador</td><td>—</td><td>Coordinador del estudiante</td></tr>
+    <tr><td><code>:REPORTÓ</code></td><td>Estudiante → Ticket</td><td>fecha</td><td>El estudiante abrió el ticket</td></tr>
+    <tr><td><code>:AFECTA</code></td><td>Ticket → Servicio</td><td>—</td><td>El ticket está relacionado con ese servicio</td></tr>
+    <tr><td><code>:ASIGNADO_A</code></td><td>Ticket → Tecnico</td><td>fecha_asignacion</td><td>Técnico que atiende el ticket</td></tr>
+    <tr><td><code>:RESUELVE</code></td><td>Tecnico → Ticket</td><td>fecha_resolucion</td><td>Técnico que cerró el ticket</td></tr>
+    <tr><td><code>:ESCALADO_A</code></td><td>Tecnico → Tecnico</td><td>motivo</td><td>Escalado entre técnicos</td></tr>
+  </tbody>
+</table>
+
+<h2 id="23-diagrama">2.3 Diagrama del Grafo</h2>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code>
+ (Coordinador)
+      ▲
+      | SUPERVISADO_POR
+      |
+ (Estudiante)──[REPORTÓ]──▶(Ticket)──[AFECTA]──▶(Servicio)◀──[ALOJA]──(Servidor)
+      |                       |                     |
+      | TRABAJA_EN             | ASIGNADO_A          | DEPENDE_DE
+      ▼                       ▼                     ▼
+  (Proyecto)──[USA]──▶(Servicio)              (Servicio)
+                                                    ▲
+                                              DEPENDE_DE
+                                                    |
+                                              (Servicio)
+
+Ejemplo concreto:
+ (H200:Servidor)──[:ALOJA]──▶(JupyterHub:Servicio)──[:DEPENDE_DE]──▶(VPN:Servicio)
+ (VPN)──[:DEPENDE_DE]──▶(ActiveDirectory:Servicio)
+
+ Pregunta: "Si cae H200, ¿qué estudiantes se ven afectados?"
+ Recorrido: H200 → aloja → JupyterHub → usa ← Proyecto ← trabaja_en ← Estudiante
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<hr>
+
+<h1 id="capitulo-3-docker">Capítulo 3: Setup con Docker</h1>
+
+<h2 id="31-estructura">3.1 Estructura del Proyecto</h2>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code>proyecto-neo4j/
+├── docker-compose.yml       # Solo Neo4j
+├── neo4j/
+│   ├── init.cypher          # Datos iniciales (nodos + relaciones)
+│   └── consultas.cypher     # Las 6 operaciones del proyecto
+├── modelo/
+│   └── grafo-modelo.md      # Diagrama texto del modelo
+├── datos/
+│   └── README.md            # Descripción de los datos ficticios
+├── resultados/
+│   └── README.md            # Donde pegas las capturas/salidas
+└── README.md                # Instrucciones de ejecución
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h2 id="32-docker-compose">3.2 docker-compose.yml</h2>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1"># docker-compose.yml</span>
+<span class="c1"># Proyecto Final — Neo4j · Ruta 4 Grafo</span>
+<span class="c1"># Uso: docker compose up -d</span>
+
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: proyecto_neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/neo4j123
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_import_file_enabled: "true"
+      NEO4J_apoc_import_file_use__neo4j__config: "true"
+      <span class="c1"># Permite conexión desde Neo4j Desktop externo</span>
+      NEO4J_dbms_connector_bolt_listen__address: "0.0.0.0:7687"
+      NEO4J_dbms_connector_http_listen__address: "0.0.0.0:7474"
+    ports:
+      - "7474:7474"   <span class="c1"># Neo4j Browser (web)</span>
+      - "7687:7687"   <span class="c1"># Bolt — para Neo4j Desktop</span>
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - ./neo4j:/var/lib/neo4j/import
+    healthcheck:
+      test: ["CMD", "neo4j", "status"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h2 id="33-levantar">3.3 Levantar el contenedor</h2>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1"># Paso 1: Ir a la carpeta del proyecto</span>
+cd proyecto-neo4j
+
+<span class="c1"># Paso 2: Levantar Neo4j en background</span>
+docker compose up -d
+
+<span class="c1"># Paso 3: Ver que está corriendo</span>
+docker compose ps
+<span class="c1"># NAME              SERVICE   STATUS     PORTS</span>
+<span class="c1"># proyecto_neo4j    neo4j     running    0.0.0.0:7474->7474/tcp, 0.0.0.0:7687->7687/tcp</span>
+
+<span class="c1"># Paso 4: Ver logs (esperar ~30s a que arranque del todo)</span>
+docker compose logs neo4j --tail=20
+
+<span class="c1"># Paso 5: Verificar con cypher-shell</span>
+docker exec -it proyecto_neo4j cypher-shell -u neo4j -p neo4j123 "RETURN 'Neo4j OK' AS status;"
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<div class="alert alert-success">
+<strong>Acceso directo al Browser:</strong> Abre <a href="http://localhost:7474" target="_blank">http://localhost:7474</a> · Usuario: <code>neo4j</code> · Contraseña: <code>neo4j123</code>
+</div>
+
+<hr>
+
+<h1 id="capitulo-4-neo4j-desktop">Capítulo 4: Conectar Neo4j Desktop con el contenedor Docker</h1>
+
+<div class="alert alert-info">
+<strong>¿Por qué conectar Neo4j Desktop?</strong> Neo4j Desktop (también llamado <em>Cypher App</em> o <em>Neo4j Workspace</em>) tiene un editor Cypher con autocompletado, visualización del grafo interactiva y herramientas de análisis. Es la forma más cómoda de ejecutar y demostrar las consultas del proyecto.
+</div>
+
+<h2 id="41-instalar-desktop">4.1 Descargar Neo4j Desktop</h2>
+<ol>
+  <li>Ve a <a href="https://neo4j.com/download/" target="_blank">https://neo4j.com/download/</a></li>
+  <li>Descarga <strong>Neo4j Desktop</strong> para tu sistema operativo (Windows / Mac / Linux)</li>
+  <li>Instala y abre la app. Te pedirá registro gratuito o saltar ese paso.</li>
+</ol>
+
+<h2 id="42-agregar-conexion-remota">4.2 Agregar conexión remota al contenedor Docker</h2>
+
+<div class="alert alert-warn">
+<strong>Importante:</strong> NO crees una base de datos nueva en Neo4j Desktop. Lo que harás es agregar una <strong>conexión remota</strong> que apunte al contenedor Docker ya corriendo.
+</div>
+
+<p>Sigue estos pasos en Neo4j Desktop:</p>
+
+<ol>
+  <li>En la pantalla principal, haz clic en <strong>"Add"</strong> (o el ícono <strong>+</strong>)</li>
+  <li>Selecciona <strong>"Remote connection"</strong> (Conexión remota)</li>
+  <li>Rellena los campos:
+    <ul>
+      <li><strong>Name:</strong> <code>Docker Neo4j Proyecto</code></li>
+      <li><strong>Connect URL:</strong> <code>neo4j://localhost:7687</code></li>
+      <li><strong>Username:</strong> <code>neo4j</code></li>
+      <li><strong>Password:</strong> <code>neo4j123</code></li>
+    </ul>
+  </li>
+  <li>Haz clic en <strong>"Connect"</strong></li>
+  <li>Si aparece un aviso de certificado SSL, acepta la conexión sin cifrar (<em>"Use without encryption"</em>)</li>
+</ol>
+
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1">-- Diagrama del flujo de conexión --
+
+ [Neo4j Desktop]         [Docker]
+       |                    |
+       |  Bolt (TCP 7687)   |
+       |&lt;------------------&gt;|
+  localhost:7687     container:7687
+       |                    |
+       |                 [Neo4j 5]
+       |                 datos persistidos
+       |                 en neo4j_data volume
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h2 id="43-abrir-cypher-app">4.3 Abrir la Cypher App en Neo4j Desktop</h2>
+<ol>
+  <li>Una vez conectado, verás la base de datos con estado <strong>"Connected"</strong> (punto verde)</li>
+  <li>Haz clic en <strong>"Open"</strong> para abrir Neo4j Workspace</li>
+  <li>En el panel que se abre, selecciona la pestaña <strong>"Query"</strong> (el editor Cypher)</li>
+  <li>¡Listo! Puedes escribir consultas Cypher y ver los resultados como tabla o grafo visual</li>
+</ol>
+
+<h2 id="44-verificar-conexion">4.4 Verificar que la conexión funciona</h2>
+<p>Copia y ejecuta esta consulta en Neo4j Desktop:</p>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1">// Verificar conexión y versión</span>
+<span class="k">CALL</span> dbms.components()
+<span class="k">YIELD</span> name, versions, edition
+<span class="k">RETURN</span> name, versions, edition;
+
+<span class="c1">// Debe devolver algo como:</span>
+<span class="c1">// name: "Neo4j Kernel"  versions: ["5.x.x"]  edition: "community"</span>
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h2 id="45-solucionar-problemas">4.5 Solución de problemas comunes</h2>
+<table>
+  <thead><tr><th>Problema</th><th>Causa probable</th><th>Solución</th></tr></thead>
+  <tbody>
+    <tr><td>No conecta en Desktop</td><td>Contenedor no corriendo</td><td><code>docker compose up -d</code></td></tr>
+    <tr><td>Error de autenticación</td><td>Contraseña incorrecta</td><td>Verificar <code>neo4j123</code> o resetear</td></tr>
+    <tr><td>Timeout de conexión</td><td>Firewall bloqueando 7687</td><td>Agregar excepción en firewall</td></tr>
+    <tr><td>"Unable to connect"</td><td>SSL requerido</td><td>Usar <code>bolt://</code> en vez de <code>neo4j://</code></td></tr>
+    <tr><td>Desktop pide TLS</td><td>Modo seguro activo</td><td>Seleccionar "Use without encryption"</td></tr>
+  </tbody>
+</table>
+
+<h2 id="46-resetear-contrasena">4.6 Resetear contraseña si es necesario</h2>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1"># Entrar al contenedor y resetear password</span>
+docker exec -it proyecto_neo4j cypher-shell -u neo4j -p neo4j123
+
+<span class="c1"># Una vez dentro, cambiar contraseña (si es necesario):</span>
+ALTER CURRENT USER SET PASSWORD FROM 'neo4j' TO 'neo4j123';
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<hr>
+
+<h1 id="capitulo-5-datos">Capítulo 5: Cargar los Datos de Prueba</h1>
+
+<h2 id="51-init-cypher">5.1 Archivo: <code>neo4j/init.cypher</code></h2>
+<p>Este archivo contiene todos los nodos y relaciones del grafo. Se carga una sola vez.</p>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1">// ================================================</span>
+<span class="c1">// init.cypher — Datos del grafo de incidencias</span>
+<span class="c1">// Sistema de Gestión de Infraestructura IA</span>
+<span class="c1">// Todos los datos son FICTICIOS</span>
+<span class="c1">// ================================================</span>
+
+<span class="c1">// Limpiar grafo anterior (útil para re-cargar)</span>
+<span class="k">MATCH</span> (n) <span class="k">DETACH DELETE</span> n;
+
+<span class="c1">// ── COORDINADORES ──────────────────────────────</span>
+<span class="k">CREATE</span>
+  (coord1:<span class="nb">Coordinador</span> {nombre: 'Daniel Riofrío', carrera: 'pregrado'}),
+  (coord2:<span class="nb">Coordinador</span> {nombre: 'Felipe Grijalva', carrera: 'maestria'});
+
+<span class="c1">// ── ESTUDIANTES ────────────────────────────────</span>
+<span class="k">CREATE</span>
+  (e1:<span class="nb">Estudiante</span> {nombre: 'Ana García',           tipo: 'pregrado', email: 'ana.garcia@estud.usfq.edu.ec'}),
+  (e2:<span class="nb">Estudiante</span> {nombre: 'Luis Morales',         tipo: 'maestria', email: 'luis.morales@estud.usfq.edu.ec'}),
+  (e3:<span class="nb">Estudiante</span> {nombre: 'María Torres',         tipo: 'pregrado', email: 'maria.torres@estud.usfq.edu.ec'}),
+  (e4:<span class="nb">Estudiante</span> {nombre: 'Carlos Ruiz',          tipo: 'maestria', email: 'carlos.ruiz@estud.usfq.edu.ec'}),
+  (e5:<span class="nb">Estudiante</span> {nombre: 'Sofía López',          tipo: 'pregrado', email: 'sofia.lopez@estud.usfq.edu.ec'}),
+  (e6:<span class="nb">Estudiante</span> {nombre: 'Pedro Sánchez',        tipo: 'maestria', email: 'pedro.sanchez@estud.usfq.edu.ec'}),
+  (e7:<span class="nb">Estudiante</span> {nombre: 'Maria Emilia Granda',  tipo: 'pregrado', email: 'maria.emilia.granda@estud.usfq.edu.ec'}),
+  (e8:<span class="nb">Estudiante</span> {nombre: 'Andrés Herrera',       tipo: 'maestria', email: 'andres.herrera@estud.usfq.edu.ec'}),
+  (e9:<span class="nb">Estudiante</span> {nombre: 'Camila Vega',          tipo: 'pregrado', email: 'camila.vega@estud.usfq.edu.ec'}),
+  (e10:<span class="nb">Estudiante</span> {nombre: 'Diego Paredes',       tipo: 'maestria', email: 'diego.paredes@estud.usfq.edu.ec'}),
+  (e11:<span class="nb">Estudiante</span> {nombre: 'Sebastián Mendoza',   tipo: 'pregrado', email: 'sebastian.mendoza@estud.usfq.edu.ec'}),
+  (e12:<span class="nb">Estudiante</span> {nombre: 'Isabella Castro',      tipo: 'maestria', email: 'isabella.castro@estud.usfq.edu.ec'}),
+  (e13:<span class="nb">Estudiante</span> {nombre: 'Mateo Salazar',        tipo: 'pregrado', email: 'mateo.salazar@estud.usfq.edu.ec'}),
+  (e14:<span class="nb">Estudiante</span> {nombre: 'Luciana Ortiz',        tipo: 'maestria', email: 'luciana.ortiz@estud.usfq.edu.ec'});
+
+<span class="c1">// ── TÉCNICOS ───────────────────────────────────</span>
+<span class="k">CREATE</span>
+  (t1:<span class="nb">Tecnico</span> {nombre: 'Roberto Méndez',    nivel: 'Dev'}),
+  (t2:<span class="nb">Tecnico</span> {nombre: 'Laura Chen',         nivel: 'Dev'}),
+  (t3:<span class="nb">Tecnico</span> {nombre: 'Miguel Ángel Ríos', nivel: 'Dev-Core'}),
+  (t4:<span class="nb">Tecnico</span> {nombre: 'Galo Pérez',         nivel: 'TI'});
+
+<span class="c1">// ── SERVIDORES ─────────────────────────────────</span>
+<span class="k">CREATE</span>
+  (srv1:<span class="nb">Servidor</span> {nombre: 'H200',         tipo: 'GPU',         ip: '10.0.1.10'}),
+  (srv2:<span class="nb">Servidor</span> {nombre: 'A100',         tipo: 'GPU',         ip: '10.0.1.11'}),
+  (srv3:<span class="nb">Servidor</span> {nombre: 'Workstation-1', tipo: 'Workstation', ip: '10.0.1.20'}),
+  (srv4:<span class="nb">Servidor</span> {nombre: 'Workstation-2', tipo: 'Workstation', ip: '10.0.1.21'}),
+  (srv5:<span class="nb">Servidor</span> {nombre: 'Workstation-3', tipo: 'Workstation', ip: '10.0.1.22'}),
+  (srv6:<span class="nb">Servidor</span> {nombre: 'DGX',           tipo: 'GPU',         ip: '10.0.1.30'}),
+  (srv7:<span class="nb">Servidor</span> {nombre: 'DGX-Spark',  tipo: 'Workstation', ip: '10.0.1.40'}),
+  (srv8:<span class="nb">Servidor</span> {nombre: 'VPS-TI',        tipo: 'VPS',         ip: '10.0.2.10'});
+
+<span class="c1">// ── SERVICIOS ──────────────────────────────────</span>
+<span class="k">CREATE</span>
+  (svc1:<span class="nb">Servicio</span>  {nombre: 'VPN',              tipo: 'red',           estado: 'activo'}),
+  (svc2:<span class="nb">Servicio</span>  {nombre: 'JupyterHub',       tipo: 'computacion',   estado: 'activo'}),
+  (svc3:<span class="nb">Servicio</span>  {nombre: 'Ollama',           tipo: 'IA',            estado: 'activo'}),
+  (svc4:<span class="nb">Servicio</span>  {nombre: 'vLLM',            tipo: 'IA',            estado: 'activo'}),
+  (svc5:<span class="nb">Servicio</span>  {nombre: 'Open WebUI',      tipo: 'interfaz',      estado: 'activo'}),
+  (svc6:<span class="nb">Servicio</span>  {nombre: 'Prometheus',      tipo: 'monitoreo',     estado: 'activo'}),
+  (svc7:<span class="nb">Servicio</span>  {nombre: 'Grafana',         tipo: 'monitoreo',     estado: 'activo'}),
+  (svc8:<span class="nb">Servicio</span>  {nombre: 'N8N',            tipo: 'automatizacion',estado: 'activo'}),
+  (svc9:<span class="nb">Servicio</span>  {nombre: 'Docker',         tipo: 'computacion',   estado: 'activo'}),
+  (svc10:<span class="nb">Servicio</span> {nombre: 'NFS (NAS)',      tipo: 'almacenamiento',estado: 'activo'}),
+  (svc11:<span class="nb">Servicio</span> {nombre: 'PostgreSQL',     tipo: 'base_datos',    estado: 'activo'}),
+  (svc12:<span class="nb">Servicio</span> {nombre: 'Active Directory',tipo: 'autenticacion', estado: 'activo'}),
+  (svc13:<span class="nb">Servicio</span> {nombre: 'RAG',            tipo: 'IA',            estado: 'activo'}),
+  (svc14:<span class="nb">Servicio</span> {nombre: 'Redis',          tipo: 'cache',         estado: 'activo'});
+
+<span class="c1">// ── PROYECTOS ──────────────────────────────────</span>
+<span class="k">CREATE</span>
+  (p1:<span class="nb">Proyecto</span> {nombre: 'Kapak',                           tipo: 'desarrollo'}),
+  (p2:<span class="nb">Proyecto</span> {nombre: 'Clasificador imágenes médicas',    tipo: 'titulacion'}),
+  (p3:<span class="nb">Proyecto</span> {nombre: 'Pipeline de datos NLP',           tipo: 'investigacion'}),
+  (p4:<span class="nb">Proyecto</span> {nombre: 'Bot de atención con LLM',         tipo: 'automatizacion'}),
+  (p5:<span class="nb">Proyecto</span> {nombre: 'Análisis sentimiento redes sociales', tipo: 'titulacion'});
+
+<span class="c1">// ── TICKETS ────────────────────────────────────</span>
+<span class="k">CREATE</span>
+  (tk101:<span class="nb">Ticket</span> {id:'TK-101',estado:'cerrado',    prioridad:'alta',   categoria:'acceso',        fecha:'2026-06-15'}),
+  (tk102:<span class="nb">Ticket</span> {id:'TK-102',estado:'cerrado',    prioridad:'media',  categoria:'rendimiento',   fecha:'2026-06-16'}),
+  (tk103:<span class="nb">Ticket</span> {id:'TK-103',estado:'cerrado',    prioridad:'baja',   categoria:'consulta',      fecha:'2026-06-17'}),
+  (tk104:<span class="nb">Ticket</span> {id:'TK-104',estado:'en_progreso',prioridad:'alta',   categoria:'acceso',        fecha:'2026-06-20'}),
+  (tk105:<span class="nb">Ticket</span> {id:'TK-105',estado:'cerrado',    prioridad:'critica',categoria:'caida',         fecha:'2026-06-22'}),
+  (tk106:<span class="nb">Ticket</span> {id:'TK-106',estado:'abierto',    prioridad:'media',  categoria:'permisos',      fecha:'2026-06-25'}),
+  (tk107:<span class="nb">Ticket</span> {id:'TK-107',estado:'cerrado',    prioridad:'baja',   categoria:'consulta',      fecha:'2026-06-26'}),
+  (tk108:<span class="nb">Ticket</span> {id:'TK-108',estado:'escalado',   prioridad:'critica',categoria:'caida',         fecha:'2026-06-28'}),
+  (tk109:<span class="nb">Ticket</span> {id:'TK-109',estado:'cerrado',    prioridad:'media',  categoria:'rendimiento',   fecha:'2026-06-30'}),
+  (tk110:<span class="nb">Ticket</span> {id:'TK-110',estado:'abierto',    prioridad:'alta',   categoria:'acceso',        fecha:'2026-07-01'}),
+  (tk111:<span class="nb">Ticket</span> {id:'TK-111',estado:'en_progreso',prioridad:'media',  categoria:'configuracion', fecha:'2026-07-02'}),
+  (tk112:<span class="nb">Ticket</span> {id:'TK-112',estado:'cerrado',    prioridad:'alta',   categoria:'vpn',           fecha:'2026-07-03'}),
+  (tk113:<span class="nb">Ticket</span> {id:'TK-113',estado:'abierto',    prioridad:'critica',categoria:'caida',         fecha:'2026-07-04'}),
+  (tk114:<span class="nb">Ticket</span> {id:'TK-114',estado:'en_progreso',prioridad:'media',  categoria:'permisos',      fecha:'2026-07-05'}),
+  (tk115:<span class="nb">Ticket</span> {id:'TK-115',estado:'cerrado',    prioridad:'baja',   categoria:'consulta',      fecha:'2026-07-05'});
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1">// ── RELACIONES: Servidor ALOJA Servicio ────────</span>
+<span class="c1">// Nota: Prometheus y Grafana están en A100; Active Directory en VPS-TI</span>
+<span class="k">MATCH</span> (srv1:<span class="nb">Servidor</span> {nombre:'H200'}),
+      (svc2:<span class="nb">Servicio</span> {nombre:'JupyterHub'}),
+      (svc3:<span class="nb">Servicio</span> {nombre:'Ollama'}),
+      (svc9:<span class="nb">Servicio</span> {nombre:'Docker'}),
+      (svc15:<span class="nb">Servicio</span> {nombre:'Colab-1'})
+<span class="k">CREATE</span> (srv1)-[:<span class="nb">ALOJA</span>]->(svc2),
+       (srv1)-[:<span class="nb">ALOJA</span>]->(svc3),
+       (srv1)-[:<span class="nb">ALOJA</span>]->(svc9),
+       (srv1)-[:<span class="nb">ALOJA</span>]->(svc15);
+
+<span class="k">MATCH</span> (srv2:<span class="nb">Servidor</span> {nombre:'A100'}),
+      (svc4:<span class="nb">Servicio</span> {nombre:'vLLM'}),
+      (svc6:<span class="nb">Servicio</span> {nombre:'Prometheus'}),
+      (svc7:<span class="nb">Servicio</span> {nombre:'Grafana'}),
+      (svc16:<span class="nb">Servicio</span> {nombre:'Colab-2'})
+<span class="k">CREATE</span> (srv2)-[:<span class="nb">ALOJA</span>]->(svc4),
+       (srv2)-[:<span class="nb">ALOJA</span>]->(svc6),
+       (srv2)-[:<span class="nb">ALOJA</span>]->(svc7),
+       (srv2)-[:<span class="nb">ALOJA</span>]->(svc16);
+
+<span class="k">MATCH</span> (srv3:<span class="nb">Servidor</span> {nombre:'Workstation-1'}),
+      (svc8:<span class="nb">Servicio</span> {nombre:'N8N'}),
+      (svc18:<span class="nb">Servicio</span> {nombre:'Colab-4'})
+<span class="k">CREATE</span> (srv3)-[:<span class="nb">ALOJA</span>]->(svc8),
+       (srv3)-[:<span class="nb">ALOJA</span>]->(svc18);
+
+<span class="k">MATCH</span> (srv5:<span class="nb">Servidor</span> {nombre:'Workstation-3'}),
+      (svc11:<span class="nb">Servicio</span> {nombre:'PostgreSQL'})
+<span class="k">CREATE</span> (srv5)-[:<span class="nb">ALOJA</span>]->(svc11);
+
+<span class="k">MATCH</span> (srv6:<span class="nb">Servidor</span> {nombre:'DGX'}),
+      (svc2:<span class="nb">Servicio</span> {nombre:'JupyterHub'}),
+      (svc3:<span class="nb">Servicio</span> {nombre:'Ollama'}),
+      (svc4:<span class="nb">Servicio</span> {nombre:'vLLM'}),
+      (svc17:<span class="nb">Servicio</span> {nombre:'Colab-3'})
+<span class="k">CREATE</span> (srv6)-[:<span class="nb">ALOJA</span>]->(svc2),
+       (srv6)-[:<span class="nb">ALOJA</span>]->(svc3),
+       (srv6)-[:<span class="nb">ALOJA</span>]->(svc4),
+       (srv6)-[:<span class="nb">ALOJA</span>]->(svc17);
+
+<span class="k">MATCH</span> (srv7:<span class="nb">Servidor</span> {nombre:'DGX-Spark'}),
+      (svc5:<span class="nb">Servicio</span> {nombre:'Open WebUI'}),
+      (svc14:<span class="nb">Servicio</span> {nombre:'Redis'})
+<span class="k">CREATE</span> (srv7)-[:<span class="nb">ALOJA</span>]->(svc5),
+       (srv7)-[:<span class="nb">ALOJA</span>]->(svc14);
+
+<span class="k">MATCH</span> (srv8:<span class="nb">Servidor</span> {nombre:'VPS-TI'}),
+      (svc12:<span class="nb">Servicio</span> {nombre:'Active Directory'})
+<span class="k">CREATE</span> (srv8)-[:<span class="nb">ALOJA</span>]->(svc12);
+
+<span class="c1">// ── RELACIONES: Servicio DEPENDE_DE Servicio ───</span>
+<span class="k">MATCH</span>
+  (vpn:<span class="nb">Servicio</span>  {nombre:'VPN'}),
+  (jup:<span class="nb">Servicio</span>  {nombre:'JupyterHub'}),
+  (oll:<span class="nb">Servicio</span>  {nombre:'Ollama'}),
+  (vll:<span class="nb">Servicio</span>  {nombre:'vLLM'}),
+  (web:<span class="nb">Servicio</span>  {nombre:'Open WebUI'}),
+  (dok:<span class="nb">Servicio</span>  {nombre:'Docker'}),
+  (pro:<span class="nb">Servicio</span>  {nombre:'Prometheus'}),
+  (gra:<span class="nb">Servicio</span>  {nombre:'Grafana'}),
+  (ad:<span class="nb">Servicio</span>   {nombre:'Active Directory'}),
+  (rag:<span class="nb">Servicio</span>  {nombre:'RAG'})
+<span class="k">CREATE</span>
+  (jup)-[:<span class="nb">DEPENDE_DE</span>]->(vpn),
+  (oll)-[:<span class="nb">DEPENDE_DE</span>]->(vpn),
+  (vll)-[:<span class="nb">DEPENDE_DE</span>]->(vpn),
+  (dok)-[:<span class="nb">DEPENDE_DE</span>]->(vpn),
+  (web)-[:<span class="nb">DEPENDE_DE</span>]->(oll),
+  (gra)-[:<span class="nb">DEPENDE_DE</span>]->(pro),
+  (vpn)-[:<span class="nb">DEPENDE_DE</span>]->(ad),
+  (rag)-[:<span class="nb">DEPENDE_DE</span>]->(vll);
+
+<span class="c1">// ── RELACIONES: Proyecto USA Servicio ──────────</span>
+<span class="k">MATCH</span>
+  (p1:<span class="nb">Proyecto</span> {nombre:'Kapak'}),
+  (p2:<span class="nb">Proyecto</span> {nombre:'Clasificador imágenes médicas'}),
+  (p3:<span class="nb">Proyecto</span> {nombre:'Pipeline de datos NLP'}),
+  (p4:<span class="nb">Proyecto</span> {nombre:'Bot de atención con LLM'}),
+  (p5:<span class="nb">Proyecto</span> {nombre:'Análisis sentimiento redes sociales'}),
+  (vpn:<span class="nb">Servicio</span> {nombre:'VPN'}),
+  (oll:<span class="nb">Servicio</span> {nombre:'Ollama'}),
+  (dok:<span class="nb">Servicio</span> {nombre:'Docker'}),
+  (vll:<span class="nb">Servicio</span> {nombre:'vLLM'}),
+  (n8n:<span class="nb">Servicio</span> {nombre:'N8N'}),
+  (pg:<span class="nb">Servicio</span>  {nombre:'PostgreSQL'})
+<span class="k">CREATE</span>
+  (p1)-[:<span class="nb">USA</span>]->(vpn), (p1)-[:<span class="nb">USA</span>]->(oll), (p1)-[:<span class="nb">USA</span>]->(dok), (p1)-[:<span class="nb">USA</span>]->(pg),
+  (p2)-[:<span class="nb">USA</span>]->(vpn), (p2)-[:<span class="nb">USA</span>]->(dok),
+  (p3)-[:<span class="nb">USA</span>]->(vpn), (p3)-[:<span class="nb">USA</span>]->(vll), (p3)-[:<span class="nb">USA</span>]->(dok),
+  (p4)-[:<span class="nb">USA</span>]->(vpn), (p4)-[:<span class="nb">USA</span>]->(n8n), (p4)-[:<span class="nb">USA</span>]->(vll),
+  (p5)-[:<span class="nb">USA</span>]->(vpn), (p5)-[:<span class="nb">USA</span>]->(dok), (p5)-[:<span class="nb">USA</span>]->(pg);
+
+<span class="c1">// ── RELACIONES: Estudiante TRABAJA_EN Proyecto ─</span>
+<span class="k">MATCH</span>
+  (e1:<span class="nb">Estudiante</span> {nombre:'Ana García'}),
+  (e2:<span class="nb">Estudiante</span> {nombre:'Luis Morales'}),
+  (e3:<span class="nb">Estudiante</span> {nombre:'María Torres'}),
+  (e4:<span class="nb">Estudiante</span> {nombre:'Carlos Ruiz'}),
+  (e5:<span class="nb">Estudiante</span> {nombre:'Sofía López'}),
+  (e6:<span class="nb">Estudiante</span> {nombre:'Pedro Sánchez'}),
+  (e7:<span class="nb">Estudiante</span> {nombre:'Maria Emilia Granda'}),
+  (e8:<span class="nb">Estudiante</span> {nombre:'Andrés Herrera'}),
+  (e9:<span class="nb">Estudiante</span> {nombre:'Camila Vega'}),
+  (e10:<span class="nb">Estudiante</span> {nombre:'Diego Paredes'}),
+  (p1:<span class="nb">Proyecto</span> {nombre:'Kapak'}),
+  (p2:<span class="nb">Proyecto</span> {nombre:'Clasificador imágenes médicas'}),
+  (p3:<span class="nb">Proyecto</span> {nombre:'Pipeline de datos NLP'}),
+  (p4:<span class="nb">Proyecto</span> {nombre:'Bot de atención con LLM'}),
+  (p5:<span class="nb">Proyecto</span> {nombre:'Análisis sentimiento redes sociales'})
+<span class="k">CREATE</span>
+  (e1)-[:<span class="nb">TRABAJA_EN</span>]->(p2), (e2)-[:<span class="nb">TRABAJA_EN</span>]->(p3),
+  (e3)-[:<span class="nb">TRABAJA_EN</span>]->(p1), (e4)-[:<span class="nb">TRABAJA_EN</span>]->(p3),
+  (e5)-[:<span class="nb">TRABAJA_EN</span>]->(p5), (e6)-[:<span class="nb">TRABAJA_EN</span>]->(p4),
+  (e7)-[:<span class="nb">TRABAJA_EN</span>]->(p1), (e8)-[:<span class="nb">TRABAJA_EN</span>]->(p3),
+  (e9)-[:<span class="nb">TRABAJA_EN</span>]->(p2), (e10)-[:<span class="nb">TRABAJA_EN</span>]->(p4);
+
+<span class="c1">// ── RELACIONES: Estudiante SUPERVISADO_POR Coord </span>
+<span class="k">MATCH</span>
+  (c1:<span class="nb">Coordinador</span> {nombre:'Daniel Riofrío'}),
+  (c2:<span class="nb">Coordinador</span> {nombre:'Felipe Grijalva'}),
+  (e1:<span class="nb">Estudiante</span> {nombre:'Ana García'}),
+  (e2:<span class="nb">Estudiante</span> {nombre:'Luis Morales'}),
+  (e3:<span class="nb">Estudiante</span> {nombre:'María Torres'}),
+  (e4:<span class="nb">Estudiante</span> {nombre:'Carlos Ruiz'}),
+  (e5:<span class="nb">Estudiante</span> {nombre:'Sofía López'}),
+  (e6:<span class="nb">Estudiante</span> {nombre:'Pedro Sánchez'}),
+  (e7:<span class="nb">Estudiante</span> {nombre:'Maria Emilia Granda'}),
+  (e8:<span class="nb">Estudiante</span> {nombre:'Andrés Herrera'}),
+  (e9:<span class="nb">Estudiante</span> {nombre:'Camila Vega'}),
+  (e10:<span class="nb">Estudiante</span> {nombre:'Diego Paredes'})
+<span class="k">CREATE</span>
+  (e1)-[:<span class="nb">SUPERVISADO_POR</span>]->(c1), (e2)-[:<span class="nb">SUPERVISADO_POR</span>]->(c2),
+  (e3)-[:<span class="nb">SUPERVISADO_POR</span>]->(c1), (e4)-[:<span class="nb">SUPERVISADO_POR</span>]->(c2),
+  (e5)-[:<span class="nb">SUPERVISADO_POR</span>]->(c1), (e6)-[:<span class="nb">SUPERVISADO_POR</span>]->(c2),
+  (e7)-[:<span class="nb">SUPERVISADO_POR</span>]->(c1), (e8)-[:<span class="nb">SUPERVISADO_POR</span>]->(c2),
+  (e9)-[:<span class="nb">SUPERVISADO_POR</span>]->(c1), (e10)-[:<span class="nb">SUPERVISADO_POR</span>]->(c2);
+
+<span class="c1">// ── RELACIONES: Estudiante REPORTÓ Ticket ──────</span>
+<span class="k">MATCH</span>
+  (e1:<span class="nb">Estudiante</span> {nombre:'Ana García'}),
+  (e2:<span class="nb">Estudiante</span> {nombre:'Luis Morales'}),
+  (e3:<span class="nb">Estudiante</span> {nombre:'María Torres'}),
+  (e4:<span class="nb">Estudiante</span> {nombre:'Carlos Ruiz'}),
+  (e5:<span class="nb">Estudiante</span> {nombre:'Sofía López'}),
+  (e6:<span class="nb">Estudiante</span> {nombre:'Pedro Sánchez'}),
+  (e7:<span class="nb">Estudiante</span> {nombre:'Maria Emilia Granda'}),
+  (e8:<span class="nb">Estudiante</span> {nombre:'Andrés Herrera'}),
+  (e9:<span class="nb">Estudiante</span> {nombre:'Camila Vega'}),
+  (e10:<span class="nb">Estudiante</span> {nombre:'Diego Paredes'})
+<span class="k">MATCH</span>
+  (tk101:<span class="nb">Ticket</span> {id:'TK-101'}),(tk102:<span class="nb">Ticket</span> {id:'TK-102'}),
+  (tk103:<span class="nb">Ticket</span> {id:'TK-103'}),(tk104:<span class="nb">Ticket</span> {id:'TK-104'}),
+  (tk105:<span class="nb">Ticket</span> {id:'TK-105'}),(tk106:<span class="nb">Ticket</span> {id:'TK-106'}),
+  (tk107:<span class="nb">Ticket</span> {id:'TK-107'}),(tk108:<span class="nb">Ticket</span> {id:'TK-108'}),
+  (tk109:<span class="nb">Ticket</span> {id:'TK-109'}),(tk110:<span class="nb">Ticket</span> {id:'TK-110'}),
+  (tk111:<span class="nb">Ticket</span> {id:'TK-111'}),(tk112:<span class="nb">Ticket</span> {id:'TK-112'}),
+  (tk113:<span class="nb">Ticket</span> {id:'TK-113'}),(tk114:<span class="nb">Ticket</span> {id:'TK-114'}),
+  (tk115:<span class="nb">Ticket</span> {id:'TK-115'})
+<span class="k">CREATE</span>
+  (e1)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-06-15'}]->(tk101),
+  (e2)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-06-16'}]->(tk102),
+  (e3)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-06-17'}]->(tk103),
+  (e4)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-06-20'}]->(tk104),
+  (e5)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-06-22'}]->(tk105),
+  (e6)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-06-25'}]->(tk106),
+  (e7)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-06-26'}]->(tk107),
+  (e1)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-06-28'}]->(tk108),
+  (e8)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-06-30'}]->(tk109),
+  (e9)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-07-01'}]->(tk110),
+  (e10)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-07-02'}]->(tk111),
+  (e2)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-07-03'}]->(tk112),
+  (e3)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-07-04'}]->(tk113),
+  (e5)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-07-05'}]->(tk114),
+  (e6)-[:<span class="nb">REPORTÓ</span> {fecha:'2026-07-05'}]->(tk115);
+
+<span class="c1">// ── RELACIONES: Ticket AFECTA Servicio ─────────</span>
+<span class="k">MATCH</span>
+  (tk101:<span class="nb">Ticket</span> {id:'TK-101'}),(tk102:<span class="nb">Ticket</span> {id:'TK-102'}),
+  (tk103:<span class="nb">Ticket</span> {id:'TK-103'}),(tk104:<span class="nb">Ticket</span> {id:'TK-104'}),
+  (tk105:<span class="nb">Ticket</span> {id:'TK-105'}),(tk106:<span class="nb">Ticket</span> {id:'TK-106'}),
+  (tk107:<span class="nb">Ticket</span> {id:'TK-107'}),(tk108:<span class="nb">Ticket</span> {id:'TK-108'}),
+  (tk109:<span class="nb">Ticket</span> {id:'TK-109'}),(tk110:<span class="nb">Ticket</span> {id:'TK-110'}),
+  (tk111:<span class="nb">Ticket</span> {id:'TK-111'}),(tk112:<span class="nb">Ticket</span> {id:'TK-112'}),
+  (tk113:<span class="nb">Ticket</span> {id:'TK-113'}),(tk114:<span class="nb">Ticket</span> {id:'TK-114'}),
+  (tk115:<span class="nb">Ticket</span> {id:'TK-115'})
+<span class="k">MATCH</span>
+  (vpn:<span class="nb">Servicio</span> {nombre:'VPN'}),
+  (oll:<span class="nb">Servicio</span> {nombre:'Ollama'}),
+  (jup:<span class="nb">Servicio</span> {nombre:'JupyterHub'}),
+  (dok:<span class="nb">Servicio</span> {nombre:'Docker'}),
+  (web:<span class="nb">Servicio</span> {nombre:'Open WebUI'}),
+  (nfs:<span class="nb">Servicio</span> {nombre:'NFS (NAS)'}),
+  (vll:<span class="nb">Servicio</span> {nombre:'vLLM'}),
+  (n8n:<span class="nb">Servicio</span> {nombre:'N8N'})
+<span class="k">CREATE</span>
+  (tk101)-[:<span class="nb">AFECTA</span>]->(vpn),
+  (tk102)-[:<span class="nb">AFECTA</span>]->(oll),
+  (tk103)-[:<span class="nb">AFECTA</span>]->(jup),
+  (tk104)-[:<span class="nb">AFECTA</span>]->(vpn), (tk104)-[:<span class="nb">AFECTA</span>]->(dok),
+  (tk105)-[:<span class="nb">AFECTA</span>]->(vpn),
+  (tk106)-[:<span class="nb">AFECTA</span>]->(dok),
+  (tk107)-[:<span class="nb">AFECTA</span>]->(web),
+  (tk108)-[:<span class="nb">AFECTA</span>]->(nfs),
+  (tk109)-[:<span class="nb">AFECTA</span>]->(vll),
+  (tk110)-[:<span class="nb">AFECTA</span>]->(vpn),
+  (tk111)-[:<span class="nb">AFECTA</span>]->(n8n),
+  (tk112)-[:<span class="nb">AFECTA</span>]->(vpn),
+  (tk113)-[:<span class="nb">AFECTA</span>]->(nfs),
+  (tk114)-[:<span class="nb">AFECTA</span>]->(dok),
+  (tk115)-[:<span class="nb">AFECTA</span>]->(jup);
+
+<span class="c1">// ── RELACIONES: Ticket ASIGNADO_A Tecnico ──────</span>
+<span class="k">MATCH</span>
+  (t1:<span class="nb">Tecnico</span> {nombre:'Roberto Méndez'}),
+  (t2:<span class="nb">Tecnico</span> {nombre:'Laura Chen'}),
+  (t3:<span class="nb">Tecnico</span> {nombre:'Miguel Ángel Ríos'}),
+  (t4:<span class="nb">Tecnico</span> {nombre:'Galo Pérez'})
+<span class="k">MATCH</span>
+  (tk101:<span class="nb">Ticket</span> {id:'TK-101'}),(tk102:<span class="nb">Ticket</span> {id:'TK-102'}),
+  (tk104:<span class="nb">Ticket</span> {id:'TK-104'}),(tk105:<span class="nb">Ticket</span> {id:'TK-105'}),
+  (tk107:<span class="nb">Ticket</span> {id:'TK-107'}),(tk108:<span class="nb">Ticket</span> {id:'TK-108'}),
+  (tk109:<span class="nb">Ticket</span> {id:'TK-109'}),(tk111:<span class="nb">Ticket</span> {id:'TK-111'}),
+  (tk112:<span class="nb">Ticket</span> {id:'TK-112'}),(tk114:<span class="nb">Ticket</span> {id:'TK-114'}),
+  (tk115:<span class="nb">Ticket</span> {id:'TK-115'})
+<span class="k">CREATE</span>
+  (tk101)-[:<span class="nb">ASIGNADO_A</span> {fecha_asignacion:'2026-06-15'}]->(t1),
+  (tk102)-[:<span class="nb">ASIGNADO_A</span> {fecha_asignacion:'2026-06-16'}]->(t2),
+  (tk104)-[:<span class="nb">ASIGNADO_A</span> {fecha_asignacion:'2026-06-20'}]->(t2),
+  (tk105)-[:<span class="nb">ASIGNADO_A</span> {fecha_asignacion:'2026-06-22'}]->(t1),
+  (tk107)-[:<span class="nb">ASIGNADO_A</span> {fecha_asignacion:'2026-06-26'}]->(t2),
+  (tk108)-[:<span class="nb">ASIGNADO_A</span> {fecha_asignacion:'2026-06-28'}]->(t1),
+  (tk109)-[:<span class="nb">ASIGNADO_A</span> {fecha_asignacion:'2026-06-30'}]->(t3),
+  (tk111)-[:<span class="nb">ASIGNADO_A</span> {fecha_asignacion:'2026-07-02'}]->(t2),
+  (tk112)-[:<span class="nb">ASIGNADO_A</span> {fecha_asignacion:'2026-07-03'}]->(t4),
+  (tk114)-[:<span class="nb">ASIGNADO_A</span> {fecha_asignacion:'2026-07-05'}]->(t1),
+  (tk115)-[:<span class="nb">ASIGNADO_A</span> {fecha_asignacion:'2026-07-05'}]->(t2);
+
+<span class="c1">// ── RELACIONES: Tecnico RESUELVE Ticket ────────</span>
+<span class="k">MATCH</span>
+  (t1:<span class="nb">Tecnico</span> {nombre:'Roberto Méndez'}),
+  (t2:<span class="nb">Tecnico</span> {nombre:'Laura Chen'}),
+  (t3:<span class="nb">Tecnico</span> {nombre:'Miguel Ángel Ríos'}),
+  (t4:<span class="nb">Tecnico</span> {nombre:'Galo Pérez'})
+<span class="k">MATCH</span>
+  (tk101:<span class="nb">Ticket</span> {id:'TK-101'}),(tk102:<span class="nb">Ticket</span> {id:'TK-102'}),
+  (tk103:<span class="nb">Ticket</span> {id:'TK-103'}),(tk105:<span class="nb">Ticket</span> {id:'TK-105'}),
+  (tk107:<span class="nb">Ticket</span> {id:'TK-107'}),(tk109:<span class="nb">Ticket</span> {id:'TK-109'}),
+  (tk112:<span class="nb">Ticket</span> {id:'TK-112'}),(tk115:<span class="nb">Ticket</span> {id:'TK-115'})
+<span class="k">CREATE</span>
+  (t1)-[:<span class="nb">RESUELVE</span> {fecha_resolucion:'2026-06-15'}]->(tk101),
+  (t2)-[:<span class="nb">RESUELVE</span> {fecha_resolucion:'2026-06-17'}]->(tk102),
+  (t1)-[:<span class="nb">RESUELVE</span> {fecha_resolucion:'2026-06-18'}]->(tk103),
+  (t3)-[:<span class="nb">RESUELVE</span> {fecha_resolucion:'2026-06-23'}]->(tk105),
+  (t2)-[:<span class="nb">RESUELVE</span> {fecha_resolucion:'2026-06-27'}]->(tk107),
+  (t3)-[:<span class="nb">RESUELVE</span> {fecha_resolucion:'2026-07-01'}]->(tk109),
+  (t4)-[:<span class="nb">RESUELVE</span> {fecha_resolucion:'2026-07-04'}]->(tk112),
+  (t2)-[:<span class="nb">RESUELVE</span> {fecha_resolucion:'2026-07-06'}]->(tk115);
+
+<span class="c1">// ── RELACIONES: Tecnico ESCALADO_A Tecnico ─────</span>
+<span class="k">MATCH</span>
+  (t1:<span class="nb">Tecnico</span> {nombre:'Roberto Méndez'}),
+  (t3:<span class="nb">Tecnico</span> {nombre:'Miguel Ángel Ríos'})
+<span class="k">CREATE</span>
+  (t1)-[:<span class="nb">ESCALADO_A</span> {motivo:'Falla crítica requiere Dev-Core', fecha:'2026-06-22'}]->(t3);
+
+<span class="c1">// ── Verificación final ──────────────────────────</span>
+<span class="k">MATCH</span> (n) <span class="k">RETURN</span> labels(n)[0] <span class="k">AS</span> tipo, count(n) <span class="k">AS</span> total
+<span class="k">ORDER BY</span> total <span class="k">DESC</span>;
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h2 id="52-cargar-datos">5.2 Cómo cargar los datos</h2>
+
+<h4>Opción A — Desde Neo4j Desktop (recomendado para la demo)</h4>
+<ol>
+  <li>Copia el contenido completo de <code>init.cypher</code></li>
+  <li>Pégalo en el editor Cypher de Neo4j Desktop</li>
+  <li>Ejecuta con <kbd>Ctrl+Enter</kbd> (o el botón ▶)</li>
+  <li>Verifica con: <code>MATCH (n) RETURN labels(n)[0] AS tipo, count(n) AS total</code></li>
+</ol>
+
+<h4>Opción B — Desde terminal</h4>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1"># Copiar el archivo al contenedor y ejecutar</span>
+docker exec -it proyecto_neo4j cypher-shell \
+  -u neo4j -p neo4j123 \
+  --file /var/lib/neo4j/import/init.cypher
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h2 id="53-visualizar-grafo">5.3 Visualizar el grafo en Neo4j Desktop</h2>
+<p>Después de cargar los datos, usa estas consultas para explorar el grafo de forma visual. En Neo4j Desktop, cambia la vista de resultados de <strong>Table</strong> a <strong>Graph</strong> (ícono de nodos conectados).</p>
+
+<div class="alert alert-info">
+<strong>Tip:</strong> Arrastra los nodos para reorganizar el grafo. Haz clic en un nodo para ver sus propiedades en el panel lateral.
+</div>
+
+<h4>Ver nodos y relaciones (grafo completo parcial)</h4>
+<p>Muestra hasta 200 relaciones con sus nodos de origen y destino — ideal para ver la estructura general:</p>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="k">MATCH</span> (n)-[r]->(m)
+<span class="k">RETURN</span> n, r, m
+<span class="k">LIMIT</span> <span class="mi">200</span>
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h4>Ver solo nodos (sin relaciones)</h4>
+<p>Útil para inspeccionar las entidades del grafo antes de explorar conexiones:</p>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="k">MATCH</span> (n)
+<span class="k">RETURN</span> n
+<span class="k">LIMIT</span> <span class="mi">100</span>
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h4>Ver subgrafo de un servidor específico</h4>
+<p>Para ver qué servicios aloja un servidor y sus dependencias:</p>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="k">MATCH</span> path = (srv:<span class="nb">Servidor</span> {nombre:'A100'})-[:<span class="nb">ALOJA</span>]->(svc)-[:<span class="nb">DEPENDE_DE</span>*0..2]-(relacionado)
+<span class="k">RETURN</span> path
+<span class="k">LIMIT</span> <span class="mi">50</span>
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<hr>
+
+<h1 id="capitulo-6-operaciones">Capítulo 6: Las 6 Operaciones del Proyecto</h1>
+
+<div class="alert alert-info">
+<strong>Categorías cubiertas:</strong> ①&nbsp;Carga/creación &nbsp;|&nbsp; ②③&nbsp;Dos lecturas distintas &nbsp;|&nbsp; ④&nbsp;Actualización con regla &nbsp;|&nbsp; ⑤&nbsp;Operación central (recorrido profundo) &nbsp;|&nbsp; ⑥&nbsp;Límite del modelo
+</div>
+
+<h2 id="op1">Operación 1 — Carga y verificación del grafo <span class="badge badge-green">① Carga</span></h2>
+<p><strong>¿Qué hace?</strong> Verifica que el grafo se cargó correctamente contando nodos por tipo y relaciones por tipo.</p>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1">// OP-1: Verificar estructura del grafo cargado</span>
+
+<span class="c1">// Contar nodos por etiqueta</span>
+<span class="k">MATCH</span> (n)
+<span class="k">RETURN</span> labels(n)[0] <span class="k">AS</span> tipo_nodo, count(n) <span class="k">AS</span> total
+<span class="k">ORDER BY</span> total <span class="k">DESC</span>;
+
+<span class="c1">// Resultado esperado:</span>
+<span class="c1">// tipo_nodo    | total</span>
+<span class="c1">// Ticket       |   15</span>
+<span class="c1">// Estudiante   |   10</span>
+<span class="c1">// Servicio     |   14</span>
+<span class="c1">// Servidor     |    7</span>
+<span class="c1">// Proyecto     |    5</span>
+<span class="c1">// Tecnico      |    4</span>
+<span class="c1">// Coordinador  |    2</span>
+
+<span class="c1">// Contar relaciones por tipo</span>
+<span class="k">MATCH</span> ()-[r]->()
+<span class="k">RETURN</span> type(r) <span class="k">AS</span> tipo_relacion, count(r) <span class="k">AS</span> total
+<span class="k">ORDER BY</span> total <span class="k">DESC</span>;
+
+<span class="c1">// Resultado esperado:</span>
+<span class="c1">// REPORTÓ           | 15</span>
+<span class="c1">// SUPERVISADO_POR   | 10</span>
+<span class="c1">// TRABAJEN_EN       | 10</span>
+<span class="c1">// AFECTA            | 16</span>
+<span class="c1">// ASIGNADO_A        | 11</span>
+<span class="c1">// ALOJA             | 13</span>
+<span class="c1">// DEPENDE_DE        |  8</span>
+<span class="c1">// USA               | 13</span>
+<span class="c1">// RESUELVE          |  8</span>
+<span class="c1">// ESCALADO_A        |  1</span>
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h2 id="op2">Operación 2 — Lectura: mapa de dependencias de servicios <span class="badge badge-neo">② Lectura A</span></h2>
+<p><strong>¿Qué hace?</strong> Muestra el grafo de dependencias entre servicios: qué servicios dependen de cuáles, incluyendo a qué servidor pertenece cada uno.</p>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1">// OP-2: Mapa de dependencias de servicios</span>
+<span class="k">MATCH</span> (a:<span class="nb">Servicio</span>)-[:<span class="nb">DEPENDE_DE</span>]->(b:<span class="nb">Servicio</span>)
+<span class="k">RETURN</span> a.nombre <span class="k">AS</span> servicio,
+       b.nombre <span class="k">AS</span> depende_de,
+       a.tipo   <span class="k">AS</span> tipo_servicio
+<span class="k">ORDER BY</span> b.nombre;
+
+<span class="c1">// Resultado esperado:</span>
+<span class="c1">// servicio       | depende_de       | tipo_servicio</span>
+<span class="c1">// JupyterHub     | VPN              | computacion</span>
+<span class="c1">// Ollama         | VPN              | IA</span>
+<span class="c1">// vLLM           | VPN              | IA</span>
+<span class="c1">// Docker         | VPN              | computacion</span>
+<span class="c1">// VPN            | Active Directory | red</span>
+<span class="c1">// Open WebUI     | Ollama           | interfaz</span>
+<span class="c1">// Grafana        | Prometheus       | monitoreo</span>
+<span class="c1">// RAG            | vLLM             | IA</span>
+
+<span class="c1">// ¿Cuál es el servicio más crítico? (del que más dependen)</span>
+<span class="k">MATCH</span> (a:<span class="nb">Servicio</span>)-[:<span class="nb">DEPENDE_DE</span>]->(b:<span class="nb">Servicio</span>)
+<span class="k">RETURN</span> b.nombre <span class="k">AS</span> servicio_critico, count(a) <span class="k">AS</span> dependientes
+<span class="k">ORDER BY</span> dependientes <span class="k">DESC</span>
+<span class="k">LIMIT</span> 5;
+
+<span class="c1">// Resultado esperado:</span>
+<span class="c1">// servicio_critico | dependientes</span>
+<span class="c1">// VPN              |     4</span>
+<span class="c1">// Ollama           |     1</span>
+<span class="c1">// vLLM             |     1</span>
+<span class="c1">// Prometheus       |     1</span>
+<span class="c1">// Active Directory |     1</span>
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h2 id="op3">Operación 3 — Lectura: tickets activos y sus conexiones <span class="badge badge-neo">③ Lectura B</span></h2>
+<p><strong>¿Qué hace?</strong> Muestra los tickets no cerrados con el estudiante que los reportó, el servicio afectado y el técnico asignado (si lo hay).</p>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1">// OP-3: Tickets abiertos — estudiante, servicio y técnico</span>
+<span class="k">MATCH</span> (e:<span class="nb">Estudiante</span>)-[:<span class="nb">REPORTÓ</span>]->(tk:<span class="nb">Ticket</span>)-[:<span class="nb">AFECTA</span>]->(svc:<span class="nb">Servicio</span>)
+<span class="k">WHERE</span> tk.estado <> 'cerrado'
+<span class="k">OPTIONAL MATCH</span> (tk)-[:<span class="nb">ASIGNADO_A</span>]->(tec:<span class="nb">Tecnico</span>)
+<span class="k">RETURN</span> tk.id         <span class="k">AS</span> ticket,
+       tk.estado      <span class="k">AS</span> estado,
+       tk.prioridad   <span class="k">AS</span> prioridad,
+       e.nombre       <span class="k">AS</span> reportado_por,
+       svc.nombre     <span class="k">AS</span> servicio_afectado,
+       coalesce(tec.nombre, 'SIN ASIGNAR') <span class="k">AS</span> tecnico
+<span class="k">ORDER BY</span>
+  <span class="k">CASE</span> tk.prioridad
+    <span class="k">WHEN</span> 'critica' <span class="k">THEN</span> 1
+    <span class="k">WHEN</span> 'alta'    <span class="k">THEN</span> 2
+    <span class="k">WHEN</span> 'media'   <span class="k">THEN</span> 3
+    <span class="k">ELSE</span> 4
+  <span class="k">END</span>;
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h2 id="op4">Operación 4 — Actualización: cerrar un ticket y actualizar estado <span class="badge badge-orange">④ Actualización / Regla</span></h2>
+<p><strong>¿Qué hace?</strong> Simula el cierre de un ticket: actualiza su estado, registra el técnico resolutor y la fecha, y luego verifica el cambio.</p>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1">// OP-4a: Estado ANTES del cierre</span>
+<span class="k">MATCH</span> (tk:<span class="nb">Ticket</span> {id:'TK-106'})
+<span class="k">RETURN</span> tk.id, tk.estado, tk.prioridad;
+<span class="c1">// Resultado: TK-106 | abierto | media</span>
+
+<span class="c1">// OP-4b: Cerrar TK-106 y asignar técnico resolutor</span>
+<span class="k">MATCH</span> (tk:<span class="nb">Ticket</span> {id:'TK-106'})
+<span class="k">MATCH</span> (tec:<span class="nb">Tecnico</span> {nombre:'Joshua Reinoso'})
+<span class="k">SET</span> tk.estado = 'cerrado',
+    tk.fecha_cierre = '2026-07-08'
+<span class="k">CREATE</span> (tec)-[:<span class="nb">RESUELVE</span> {fecha_resolucion:'2026-07-08'}]->(tk)
+<span class="k">RETURN</span> tk.id, tk.estado, tk.fecha_cierre, tec.nombre <span class="k">AS</span> resuelto_por;
+
+<span class="c1">// OP-4c: Verificar DESPUÉS</span>
+<span class="k">MATCH</span> (tec:<span class="nb">Tecnico</span>)-[r:<span class="nb">RESUELVE</span>]->(tk:<span class="nb">Ticket</span> {id:'TK-106'})
+<span class="k">RETURN</span> tk.id, tk.estado, tec.nombre, r.fecha_resolucion;
+<span class="c1">// Resultado: TK-106 | cerrado | Roberto Méndez | 2026-07-08</span>
+
+<span class="c1">// OP-4d: Intentar cerrar un ticket ya cerrado (error controlado)</span>
+<span class="c1">// Si el ticket ya está cerrado, no debería crear relación duplicada</span>
+<span class="k">MATCH</span> (tk:<span class="nb">Ticket</span> {id:'TK-101', estado:'cerrado'})
+<span class="k">RETURN</span> 'Ticket ya cerrado — no se modifica' <span class="k">AS</span> mensaje, tk.estado;
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h2 id="op5">Operación 5 — CENTRAL: análisis de impacto en cascada <span class="badge badge-red">⑤ Operación central del grafo</span></h2>
+<p><strong>¿Qué hace?</strong> Dado que el servidor H200 está caído, recorre el grafo para encontrar: qué servicios deja sin funcionamiento, qué proyectos quedan bloqueados, y qué estudiantes con tickets activos se ven afectados.</p>
+<blockquote><p><strong>Esta es la consulta que justifica por qué se eligió un grafo.</strong> En SQL requeriría CTEs recursivas de 30+ líneas. En Cypher son 15 líneas elegantes.</p></blockquote>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1">// OP-5: ANÁLISIS DE IMPACTO EN CASCADA</span>
+<span class="c1">// Pregunta: "Si cae el servidor H200, ¿qué pasa en la infraestructura?"</span>
+
+<span class="c1">// Paso A: ¿Qué servicios aloja H200?</span>
+<span class="k">MATCH</span> (srv:<span class="nb">Servidor</span> {nombre:'H200'})-[:<span class="nb">ALOJA</span>]->(svc:<span class="nb">Servicio</span>)
+<span class="k">RETURN</span> srv.nombre <span class="k">AS</span> servidor, svc.nombre <span class="k">AS</span> servicio_caido;
+<span class="c1">// H200 | JupyterHub</span>
+<span class="c1">// H200 | Ollama</span>
+<span class="c1">// H200 | Docker</span>
+
+<span class="c1">// Paso B: ¿Qué otros servicios dependen de los caídos? (profundidad 1-3)</span>
+<span class="k">MATCH</span> (srv:<span class="nb">Servidor</span> {nombre:'H200'})-[:<span class="nb">ALOJA</span>]->(caido:<span class="nb">Servicio</span>)
+<span class="k">MATCH</span> path = (afectado:<span class="nb">Servicio</span>)-[:<span class="nb">DEPENDE_DE</span>*1..3]->(caido)
+<span class="k">RETURN DISTINCT</span>
+  caido.nombre    <span class="k">AS</span> servicio_caido,
+  afectado.nombre <span class="k">AS</span> servicio_afectado_en_cascada,
+  length(path)    <span class="k">AS</span> saltos
+<span class="k">ORDER BY</span> caido.nombre, saltos;
+
+<span class="c1">// Paso C: ¿Qué proyectos usan esos servicios caídos?</span>
+<span class="k">MATCH</span> (srv:<span class="nb">Servidor</span> {nombre:'H200'})-[:<span class="nb">ALOJA</span>]->(svc:<span class="nb">Servicio</span>)
+<span class="k">MATCH</span> (p:<span class="nb">Proyecto</span>)-[:<span class="nb">USA</span>]->(svc)
+<span class="k">RETURN DISTINCT</span>
+  p.nombre   <span class="k">AS</span> proyecto_bloqueado,
+  svc.nombre <span class="k">AS</span> servicio_caido,
+  p.tipo     <span class="k">AS</span> tipo_proyecto;
+
+<span class="c1">// Paso D: ¿Qué estudiantes trabajan en esos proyectos y tienen tickets activos?</span>
+<span class="k">MATCH</span> (srv:<span class="nb">Servidor</span> {nombre:'H200'})-[:<span class="nb">ALOJA</span>]->(svc:<span class="nb">Servicio</span>)
+<span class="k">MATCH</span> (p:<span class="nb">Proyecto</span>)-[:<span class="nb">USA</span>]->(svc)
+<span class="k">MATCH</span> (e:<span class="nb">Estudiante</span>)-[:<span class="nb">TRABAJA_EN</span>]->(p)
+<span class="k">OPTIONAL MATCH</span> (e)-[:<span class="nb">REPORTÓ</span>]->(tk:<span class="nb">Ticket</span>)
+<span class="k">WHERE</span> tk.estado <> 'cerrado'
+<span class="k">RETURN DISTINCT</span>
+  e.nombre   <span class="k">AS</span> estudiante_impactado,
+  p.nombre   <span class="k">AS</span> proyecto,
+  svc.nombre <span class="k">AS</span> via_servicio,
+  coalesce(tk.id, 'Sin ticket activo') <span class="k">AS</span> ticket_activo
+<span class="k">ORDER BY</span> e.nombre;
+
+<span class="c1">// Paso E (MEGA-QUERY): Todo en una sola consulta de 5 saltos</span>
+<span class="k">MATCH</span> path =
+  (srv:<span class="nb">Servidor</span> {nombre:'H200'})-[:<span class="nb">ALOJA</span>]->(svc:<span class="nb">Servicio</span>)
+  &lt;-[:<span class="nb">USA</span>]-(p:<span class="nb">Proyecto</span>)
+  &lt;-[:<span class="nb">TRABAJA_EN</span>]-(e:<span class="nb">Estudiante</span>)
+  -[:<span class="nb">REPORTÓ</span>]->(tk:<span class="nb">Ticket</span>)
+<span class="k">WHERE</span> tk.estado <> 'cerrado'
+<span class="k">RETURN</span>
+  srv.nombre <span class="k">AS</span> servidor,
+  svc.nombre <span class="k">AS</span> servicio,
+  p.nombre   <span class="k">AS</span> proyecto,
+  e.nombre   <span class="k">AS</span> estudiante,
+  tk.id      <span class="k">AS</span> ticket,
+  tk.prioridad <span class="k">AS</span> prioridad,
+  length(path) <span class="k">AS</span> saltos_en_el_grafo
+<span class="k">ORDER BY</span> tk.prioridad;
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<h2 id="op6">Operación 6 — Límite del modelo: consulta incómoda <span class="badge badge-orange">⑥ Costo aceptado</span></h2>
+<p><strong>¿Qué hace?</strong> Demuestra el límite del grafo: calcular el tiempo promedio de resolución de tickets por técnico es posible pero incómodo comparado con SQL.</p>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code><span class="c1">// OP-6: Estadísticas de resolución por técnico</span>
+<span class="c1">// Esto es POSIBLE en Cypher pero más natural en SQL con AVG()</span>
+
+<span class="k">MATCH</span> (tec:<span class="nb">Tecnico</span>)-[r:<span class="nb">RESUELVE</span>]->(tk:<span class="nb">Ticket</span>)
+<span class="k">RETURN</span>
+  tec.nombre  <span class="k">AS</span> tecnico,
+  tec.nivel   <span class="k">AS</span> nivel,
+  count(tk)   <span class="k">AS</span> tickets_resueltos
+<span class="k">ORDER BY</span> tickets_resueltos <span class="k">DESC</span>;
+
+<span class="c1">// Técnicos con mayor carga de tickets activos asignados</span>
+<span class="k">MATCH</span> (tec:<span class="nb">Tecnico</span>)&lt;-[:<span class="nb">ASIGNADO_A</span>]-(tk:<span class="nb">Ticket</span>)
+<span class="k">WHERE</span> tk.estado <> 'cerrado'
+<span class="k">RETURN</span>
+  tec.nombre <span class="k">AS</span> tecnico,
+  count(tk)  <span class="k">AS</span> carga_activa
+<span class="k">ORDER BY</span> carga_activa <span class="k">DESC</span>;
+
+<span class="c1">// COSTO ACEPTADO: Para calcular tiempo promedio de resolución</span>
+<span class="c1">// necesitaríamos fechas como timestamps y hacer aritmética.</span>
+<span class="c1">// El grafo NO tiene funciones de date arithmetic tan convenientes como SQL.</span>
+<span class="c1">// En SQL esto sería: AVG(fecha_cierre - fecha_creacion)</span>
+<span class="c1">// Conclusión: para reportes estadísticos masivos, SQL es mejor herramienta.</span>
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+<hr>
+
+<h1 id="capitulo-7-rubrica">Capítulo 7: Rúbrica y Checklist</h1>
+
+<h2 id="71-tabla-rubrica">7.1 Tabla de Rúbrica (25 pts)</h2>
+<table class="rubric-table">
+  <thead><tr><th>Criterio</th><th>Pts</th><th>Cómo lo cubre este proyecto</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Alcance y elección de ruta</td><td>4</td>
+      <td>Problema pequeño y concreto (incidencias infraestructura IA). Ruta 4 justificada explícitamente: las relaciones de dependencia son el dato central; en SQL requeriría CTEs recursivas.</td>
+    </tr>
+    <tr>
+      <td>Modelo de datos</td><td>6</td>
+      <td>7 tipos de nodo, 10 tipos de relación con propiedades en nodos y relaciones (fecha en REPORTÓ, fecha_asignacion en ASIGNADO_A, motivo en ESCALADO_A). Modelo diseñado para caminar caminos, no solo almacenar tablas.</td>
+    </tr>
+    <tr>
+      <td>Implementación y evidencia</td><td>6</td>
+      <td>Docker Compose reproducible. init.cypher con 57 nodos y 90+ relaciones de datos ficticios. Instrucciones de carga en 1 comando. Salida esperada documentada en cada operación.</td>
+    </tr>
+    <tr>
+      <td>Consultas o patrones de acceso</td><td>4</td>
+      <td>6 operaciones de categorías distintas: ①&nbsp;carga+verificación, ②&nbsp;mapa de dependencias, ③&nbsp;lectura multi-nodo con OPTIONAL MATCH, ④&nbsp;actualización antes/después, ⑤&nbsp;recorrido de 5 saltos en cascada, ⑥&nbsp;demostración del límite.</td>
+    </tr>
+    <tr>
+      <td>Demo mínima</td><td>3</td>
+      <td>Neo4j Browser (localhost:7474) ejecuta las consultas y muestra el grafo visual. Neo4j Desktop conectado por Bolt permite demo interactiva con visualización. No depende solo de capturas.</td>
+    </tr>
+    <tr>
+      <td>Defensa técnica</td><td>2</td>
+      <td>Costo aceptado documentado en OP-6. Justificación de nodos vs relaciones vs propiedades. Comparación con SQL en OP-5. Se puede explicar cada decisión.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="72-checklist">7.2 Checklist antes de la defensa</h2>
+<ul>
+  <li>☐ <code>docker compose up -d</code> funciona desde cero en otra máquina</li>
+  <li>☐ <code>init.cypher</code> carga sin errores</li>
+  <li>☐ Operación 1 muestra todos los nodos y relaciones esperados</li>
+  <li>☐ Neo4j Desktop conecta a <code>bolt://localhost:7687</code></li>
+  <li>☐ Operación 5 produce resultados (camino de 5 saltos visible)</li>
+  <li>☐ Puedes explicar: ¿por qué DEPENDE_DE va de servicio dependiente → base?</li>
+  <li>☐ Puedes explicar: ¿qué propiedad pusiste en una relación y por qué?</li>
+  <li>☐ Puedes nombrar el costo aceptado</li>
+  <li>☐ Tienes al menos una captura del grafo visual en Neo4j Desktop</li>
+  <li>☐ README tiene los pasos numerados y salida esperada</li>
+</ul>
+
+<hr>
+
+<h1 id="capitulo-8-defensa">Capítulo 8: Guía para la Defensa (5-7 min)</h1>
+
+<h2 id="81-script-defensa">8.1 Script sugerido</h2>
+
+<div class="alert alert-success">
+<ol style="margin:0;padding-left:1.4em;">
+  <li><strong>"Mi problema es..."</strong> — La infraestructura de IA universitaria tiene servidores, servicios y estudiantes. Cuando algo falla, el equipo técnico necesita saber el impacto en cascada.</li>
+  <li><strong>"La pregunta principal es..."</strong> — Si falla un servidor, ¿qué servicios caen, qué proyectos se bloquean y a qué estudiantes afecta con tickets activos?</li>
+  <li><strong>"Escogí esta ruta porque..."</strong> — La respuesta requiere caminar relaciones a profundidad variable. Eso es exactamente lo que un grafo hace nativamente y en SQL requeriría CTEs recursivas de 30 líneas.</li>
+  <li><strong>"Mis datos están organizados así..."</strong> — [Mostrar el grafo en Neo4j Desktop] 7 tipos de nodo, 10 tipos de relación. Las relaciones tienen propiedades como <code>fecha</code>, <code>motivo</code> y <code>fecha_asignacion</code>.</li>
+  <li><strong>"Estas operaciones prueban que funciona..."</strong> — [Ejecutar OP-5 en vivo] Este camino de 5 saltos: Servidor → Servicio → Proyecto → Estudiante → Ticket, en 15 líneas de Cypher.</li>
+  <li><strong>"El costo o límite principal es..."</strong> — Cálculos estadísticos masivos (SUM, AVG) son más cómodos en SQL. Si el sistema creciera y necesitara reportes de métricas, esa parte debería usar SQL o un data warehouse.</li>
+  <li><strong>"Si el sistema creciera..."</strong> — Agregaría un nodo <code>:Red</code> para modelar subredes, y relaciones <code>:CONECTADO_A</code> entre servidores para análisis de topología de red.</li>
+</ol>
+</div>
+
+<h2 id="82-preguntas-frecuentes">8.2 Preguntas frecuentes de defensa (Ruta 4)</h2>
+<table>
+  <thead><tr><th>Pregunta</th><th>Respuesta sugerida</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>¿Por qué DEPENDE_DE va del dependiente al base?</td>
+      <td>Porque la dirección modela la pregunta "este servicio necesita a este otro". Así puedo buscar hacia adelante "¿de qué depende X?" o hacia atrás "¿quién depende de X?", sin cambiar la consulta, solo invirtiendo la dirección con <code>&lt;-[:DEPENDE_DE]-</code>.</td>
+    </tr>
+    <tr>
+      <td>¿Qué propiedad pusiste en una relación?</td>
+      <td>La relación <code>REPORTÓ</code> tiene <code>fecha</code>, <code>RESUELVE</code> tiene <code>fecha_resolucion</code>, y <code>ESCALADO_A</code> tiene <code>motivo</code>. Estas propiedades viven en la relación porque describen el evento, no la entidad.</td>
+    </tr>
+    <tr>
+      <td>¿Qué haría difícil una consulta SQL aquí?</td>
+      <td>La OP-5 requiere seguir un camino variable (1-5 saltos) de dependencias. En SQL necesitaría <code>WITH RECURSIVE</code> con múltiples JOINs. En Cypher es <code>[:DEPENDE_DE*1..5]</code>.</td>
+    </tr>
+    <tr>
+      <td>¿Qué costo aceptaste?</td>
+      <td>El grafo no es eficiente para agregaciones masivas (AVG de tiempos, sumas de métricas). Para eso, SQL es la herramienta correcta.</td>
+    </tr>
+    <tr>
+      <td>¿Podrías haber usado MongoDB?</td>
+      <td>Podría guardar los tickets como documentos, pero las dependencias entre servicios son el dato central — eso requiere traversals que MongoDB no hace nativamente.</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h1 id="capitulo-9-readme">Capítulo 9: README del Proyecto</h1>
+<div class="code-wrapper"><div class="codehilite"><pre><span></span><code># Proyecto Final — Neo4j · Ruta 4 Grafo
+## Sistema de Gestión de Incidencias — Infraestructura IA Universitaria
+
+**Todos los datos son ficticios.**
+
+## Requisitos
+- Docker Desktop instalado y corriendo
+- (Opcional) Neo4j Desktop para visualización
+
+## Pasos de ejecución (desde cero)
+
+```bash
+# 1. Clonar o descomprimir el proyecto
+cd proyecto-neo4j
+
+# 2. Levantar Neo4j
+docker compose up -d
+
+# 3. Esperar ~30 segundos y verificar
+docker compose ps     # Status: running
+docker exec -it proyecto_neo4j neo4j status
+
+# 4. Cargar los datos
+docker exec -it proyecto_neo4j cypher-shell \
+  -u neo4j -p neo4j123 \
+  --file /var/lib/neo4j/import/init.cypher
+
+# 5. Abrir Neo4j Browser
+# → http://localhost:7474
+# → Usuario: neo4j | Contraseña: neo4j123
+
+# 6. (Opcional) Conectar Neo4j Desktop
+# → Remote connection → bolt://localhost:7687
+```
+
+## Operaciones
+Ver archivo `neo4j/consultas.cypher`. Ejecutar en orden OP-1 a OP-6.
+
+## Salida esperada
+- OP-1: 57 nodos (15 Tickets, 10 Estudiantes, 14 Servicios, 7 Servidores...)
+- OP-5 (central): camino de 5 saltos Servidor→Servicio→Proyecto→Estudiante→Ticket
+
+## Estructura
+```
+proyecto-neo4j/
+├── docker-compose.yml
+├── neo4j/
+│   ├── init.cypher         # Carga de datos
+│   └── consultas.cypher    # 6 operaciones
+├── modelo/grafo-modelo.md
+├── resultados/             # Capturas de salidas
+└── README.md
+```
+</code></pre></div>
+<button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+
+</main>
+</div>
+
+<button class="top-btn" id="topBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// TOC generator
+const headings = document.querySelectorAll('.content h1[id], .content h2[id]');
+const nav = document.getElementById('toc-nav');
+headings.forEach(h => {
+  const a = document.createElement('a');
+  a.href = '#' + h.id;
+  a.textContent = h.textContent.replace(/[①②③④⑤⑥]/g, '').trim();
+  a.style.paddingLeft = h.tagName === 'H2' ? '20px' : '4px';
+  nav.appendChild(a);
+});
+
+// Search
+document.getElementById('toc-search').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  nav.querySelectorAll('a').forEach(a => {
+    a.style.display = a.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+
+// Active link
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      nav.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+      const active = nav.querySelector('a[href="#' + e.target.id + '"]');
+      if (active) active.classList.add('active');
+    }
+  });
+}, {threshold: 0.3});
+headings.forEach(h => observer.observe(h));
+
+// Top button
+window.addEventListener('scroll', () => {
+  document.getElementById('topBtn').classList.toggle('show', window.scrollY > 300);
+});
+
+// Copy buttons
+function copyCode(btn) {
+  const pre = btn.previousElementSibling.querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = '✓ Copiado';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+</script>
+</body>
+</html>
